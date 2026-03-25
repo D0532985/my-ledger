@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的雲端帳本</title>
+    <script src="https://cdn.tailwindcss.com"></script> <style>
+        .active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="flex justify-around py-3 font-medium text-gray-500">
+            <button class="active">日</button>
+            <button>月</button>
+            <button>年</button>
+            <button>全部</button>
+            <button>自訂</button>
+        </div>
+    </div>
+
+    <div class="p-4 grid grid-cols-3 gap-2 text-center">
+        <div class="bg-red-50 p-3 rounded-lg">
+            <p class="text-xs text-red-600">總支出</p>
+            <p class="font-bold text-lg text-red-700">$ 150</p>
+        </div>
+        <div class="bg-green-50 p-3 rounded-lg">
+            <p class="text-xs text-green-600">總收入</p>
+            <p class="font-bold text-lg text-green-700">$ 0</p>
+        </div>
+        <div class="bg-blue-50 p-3 rounded-lg">
+            <div class="text-xs text-blue-600">結餘</div>
+            <div class="font-bold text-lg text-blue-700">$ -150</div>
+        </div>
+    </div>
+
+    <div class="px-4 pb-20">
+        <h3 class="text-gray-500 text-sm mb-2">2026年3月25日</h3>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+            <div class="p-4 border-b flex justify-between items-center active:bg-gray-50" onclick="toggleDetail()">
+                <div>
+                    <p class="font-bold text-gray-800">午餐 (餐飲)</p>
+                    <p class="text-xs text-gray-400">現金 | 12:30</p>
+                </div>
+                <p class="font-bold text-red-500">- 150</p>
+            </div>
+            <div id="detail" class="hidden p-4 bg-gray-50 text-sm text-gray-600 border-b">
+                <p>項目統稱：午餐</p>
+                <p>交易日期：2026-03-25</p>
+                <p>交易帳戶：現金</p>
+                <p>交易類型：支出</p>
+                <p>交易標籤：餐飲、外食</p>
+                <p>備註：這家店的排骨飯很好吃</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-0 w-full bg-white border-t flex justify-around py-3">
+        <button class="flex flex-col items-center text-blue-500">
+            <span>🏠</span><span class="text-xs">首頁</span>
+        </button>
+        <button class="flex flex-col items-center text-gray-400">
+            <span>📊</span><span class="text-xs">圖表分析</span>
+        </button>
+        <button class="bg-blue-500 text-white p-3 rounded-full -mt-8 shadow-lg">
+            ➕
+        </button>
+    </div>
+
+    <script>
+        function toggleDetail() {
+            const detail = document.getElementById('detail');
+            detail.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
