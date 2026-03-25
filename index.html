@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
-        .card-fade { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card-fade { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-gray-50 pb-24">
@@ -22,34 +22,36 @@
 
     <div class="p-4 grid grid-cols-3 gap-2 text-center">
         <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-red-400">
-            <p class="text-[10px] text-gray-400 uppercase">支出</p>
-            <p class="font-bold text-red-500" id="exp">0</p>
+            <p class="text-[10px] text-gray-400">支出</p>
+            <p class="font-bold text-red-500" id="expSum">0</p>
         </div>
         <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-green-400">
-            <p class="text-[10px] text-gray-400 uppercase">收入</p>
-            <p class="font-bold text-green-500" id="inc">0</p>
+            <p class="text-[10px] text-gray-400">收入</p>
+            <p class="font-bold text-green-500" id="incSum">0</p>
         </div>
         <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-blue-400">
-            <p class="text-[10px] text-gray-400 uppercase">結餘</p>
-            <p class="font-bold text-blue-600" id="bal">0</p>
+            <p class="text-[10px] text-gray-400">結餘</p>
+            <p class="font-bold text-blue-600" id="balSum">0</p>
         </div>
     </div>
 
-    <div id="list" class="px-4 space-y-3 text-center text-gray-400 py-10 italic">
-        雲端資料同步中...
+    <div id="listContainer" class="px-4 space-y-3">
+        <div class="text-center py-10 text-gray-400 italic">正在從雲端抓取資料...</div>
     </div>
 
     <div class="fixed bottom-6 right-6">
-        <button onclick="openModal()" class="bg-blue-600 text-white w-14 h-14 rounded-full shadow-2xl text-3xl flex items-center justify-center hover:bg-blue-700 transition-all">+</button>
+        <button onclick="openModal()" class="bg-blue-600 text-white w-14 h-14 rounded-full shadow-2xl text-3xl flex items-center justify-center hover:scale-110 transition-transform">+</button>
     </div>
 
     <div id="modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center">
         <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4 card-fade">
             <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-bold text-lg text-gray-700">新增收支紀錄</h3>
+                <h3 class="font-bold text-lg text-gray-700">記一筆新的</h3>
                 <button onclick="closeModal()" class="text-gray-400 text-2xl">&times;</button>
             </div>
             <div class="space-y-3">
-                <div><label class="text-xs text-gray-400">日期</label><input type="date" id="formDate" class="w-full border p-3 rounded-xl"></div>
-                <div><label class="text-xs text-gray-400">項目</label><input type="text" id="formItem" placeholder="例如：午餐" class="w-full border p-3 rounded-xl"></div>
-                <div><label class="text-xs text-gray-400">金額</label><input type="number" id="formAmount" placeholder="支出請輸入負數 (例
+                <input type="date" id="iptDate" class="w-full border p-3 rounded-xl">
+                <input type="text" id="iptItem" placeholder="項目內容 (如：午餐)" class="w-full border p-3 rounded-xl">
+                <input type="number" id="iptAmt" placeholder="金額 (支出請填負數，如 -100)" class="w-full border p-3 rounded-xl">
+            </div>
+            <button id="saveBtn" onclick="submitData()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg">儲存到雲端</button
