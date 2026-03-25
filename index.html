@@ -5,66 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的雲端帳本</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
-        .hidden { display: none; }
-    </style>
 </head>
-<body class="bg-gray-50 min-h-screen pb-24">
+<body class="bg-gray-50 pb-20">
+    <div class="bg-white shadow-sm sticky top-0 p-4 flex justify-around text-sm">
+        <button onclick="filter('day')" class="font-bold text-blue-600">日</button>
+        <button onclick="filter('month')">月</button>
+        <button onclick="filter('year')">年</button>
+        <button onclick="filter('all')">全部</button>
+    </div>
 
-    <div class="bg-white shadow-sm sticky top-0 z-20">
-        <div class="flex justify-around py-3 text-sm text-gray-500" id="timeFilter">
-            <button onclick="changeTab('day')" id="btn-day" class="tab-active">日</button>
-            <button onclick="changeTab('month')" id="btn-month">月</button>
-            <button onclick="changeTab('year')" id="btn-year">年</button>
-            <button onclick="changeTab('all')" id="btn-all">全部</button>
+    <div class="p-4 grid grid-cols-3 gap-2 text-center" id="board">
+        <div class="bg-white p-2 rounded shadow">支出<p id="exp" class="text-red-500 font-bold">0</p></div>
+        <div class="bg-white p-2 rounded shadow">收入<p id="inc" class="text-green-500 font-bold">0</p></div>
+        <div class="bg-white p-2 rounded shadow">結餘<p id="bal" class="text-blue-500 font-bold">0</p></div>
+    </div>
+
+    <div id="list" class="p-4 space-y-2">載入中...</div>
+
+    <div class="fixed bottom-4 right-4">
+        <button onclick="document.getElementById('modal').classList.toggle('hidden')" class="bg-blue-600 text-white w-14 h-14 rounded-full shadow-xl text-2xl">+</button>
+    </div>
+
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center p-6">
+        <div class="bg-white w-full p-6 rounded-2xl space-y-4">
+            <input type="date" id="d" class="w-full border p-2">
+            <input type="text" id="i" placeholder="項目" class="w-full border p-2">
+            <input type="number" id="a" placeholder="金額(負數為支出)" class="w-full border p-2">
+            <button onclick="send()" class="w-full bg-blue-600 text-white py-2 rounded">儲存</button>
+            <button onclick="document.getElementById('modal').classList.add('hidden')" class="w-full text-gray-400">取消</button>
         </div>
     </div>
 
-    <div class="p-4 grid grid-cols-3 gap-2 text-center">
-        <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-red-400">
-            <p class="text-[10px] text-gray-400 uppercase">支出</p>
-            <p class="font-bold text-red-500" id="totalExpense">$ 0</p>
-        </div>
-        <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-green-400">
-            <p class="text-[10px] text-gray-400 uppercase">收入</p>
-            <p class="font-bold text-green-500" id="totalIncome">$ 0</p>
-        </div>
-        <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-blue-400">
-            <p class="text-[10px] text-gray-400 uppercase">結餘</p>
-            <p class="font-bold text-blue-600" id="totalBalance">$ 0</p>
-        </div>
-    </div>
+    <script>
+        // ⚠️ 請把下面這行換成你自己的 Google 網址
+        const API_URL = "https://script.google.com/macros/s/AKfycbxchBuKWMB0K2KAJzdwV-jFZpY4VWI7lGUViZQwn7tl3nTf6YNvk1KApiIxB5uUVDhCDg/exec";
+        
+        function load() {
+            const s = document.createElement('script');
+            s.src = `${API_URL}?callback=draw`;
+            document.body.appendChild(s);
+        }
 
-    <div id="mainContent" class="px-4">
-        <div id="transactionList" class="space-y-3">
-            <p class="text-center text-gray-400 py-10 italic">資料通訊中...</p>
-        </div>
-    </div>
+        function draw(data) {
+            let h = "", e = 0, n = 0;
+            data.forEach(x => {
+                const v = parseFloat(x.金額);
+                v < 0 ? e += Math.abs(v) : n += v;
+                h += `<div class="bg-white p-3 rounded shadow flex justify-between">
+                    <div><b>${x.項目統稱}</b><br><small>${x.日期}</small></div>
+                    <div class="${v<0?'text-red-500':'text-green-500'} font-bold">${v}</div>
+                </div>`;
+            });
+            document.getElementById('list').innerHTML = h || "尚無資料";
+            document.getElementById('exp').innerText = e;
+            document.getElementById('inc').innerText = n;
+            document.getElementById('bal').innerText = n - e;
+        }
 
-    <div id="analyticsContent" class="hidden px-4 space-y-6">
-        <div class="bg-white p-4 rounded-xl shadow-sm">
-            <h4 class="text-sm font-bold mb-4 text-gray-700">支出結構 (圓餅圖)</h4>
-            <canvas id="typePieChart"></canvas>
-        </div>
-    </div>
-
-    <div class="fixed bottom-0 w-full bg-white border-t flex justify-around py-2 shadow-lg">
-        <button onclick="showPage('list')" class="flex flex-col items-center text-blue-500">
-            <span>🏠</span><span class="text-[10px]">明細</span>
-        </button>
-        <button onclick="showPage('add')" class="bg-blue-600 text-white w-12 h-12 rounded-full -mt-6 flex items-center justify-center border-4 border-white shadow-lg">
-            <span>+</span>
-        </button>
-        <button onclick="showPage('chart')" class="flex flex-col items-center text-gray-400">
-            <span>📊</span><span class="text-[10px]">分析</span>
-        </button>
-    </div>
-
-    <div id="addModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end">
-        <div class="bg-white w-full rounded-t-3xl p-6 space-y-4">
-            <div class="flex justify-between items-center"><h3 class="font-bold">新增交易</h3><button onclick="showPage('list')">關閉</button></div>
-            <input type="date" id="formDate" class="w-full border p-3 rounded-lg">
-            <input type="text" id="formItem" placeholder="項目 (例: 晚餐)" class="w-full border p-3 rounded-lg">
-            <input type="number" id="formAmount" placeholder="金額 (支出請填負數)" class="w-full border p-3 rounded-lg">
+        async function send() {
+            const p = {
+                date: document.getElementById('d').value,
+                item: document.getElementById('i').value,
+                amount: document.getElementById('a').value,
+                account: "現金", type: "支出", tag: "一般", note: ""
+            };
+            await fetch(API_URL, { method: "POST", body: JSON.stringify(p) });
+            location.reload();
+        }
+        load();
+    </script>
+</body>
+</html>
