@@ -56,18 +56,24 @@
         }
 
         function render() {
-            const now = new Date();
-            const today = now.toISOString().split('T')[0];
-            const thisMonth = today.substring(0, 7);
-            const thisYear = today.substring(0, 4);
+            // 取得台灣時間的今天 (避免 ISOString 造成的時差問題)
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000; 
+    const localISODate = (new Date(now - offset)).toISOString();
+    
+    const today = localISODate.split('T')[0];
+    const thisMonth = today.substring(0, 7);
+    const thisYear = today.substring(0, 4);
 
-            let filtered = rawData.filter(x => {
-                const itemDate = x.日期.split('T')[0]; // 處理你看到的 T07:00 格式
-                if (currentMode === 'day') return itemDate === today;
-                if (currentMode === 'month') return itemDate.startsWith(thisMonth);
-                if (currentMode === 'year') return itemDate.startsWith(thisYear);
-                return true;
-            });
+    let filtered = rawData.filter(x => {
+        // 強制把 Google 傳回來的日期只截取前 10 碼 (YYYY-MM-DD)
+        const itemDate = x.日期.substring(0, 10); 
+        
+        if (currentMode === 'day') return itemDate === today;
+        if (currentMode === 'month') return itemDate.startsWith(thisMonth);
+        if (currentMode === 'year') return itemDate.startsWith(thisYear);
+        return true; // 「全部」模式
+    });
 
             let h = "", e = 0, inc = 0;
             filtered.forEach(x => {
