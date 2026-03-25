@@ -5,71 +5,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的雲端帳本</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>.active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }</style>
 </head>
 <body class="bg-gray-50 pb-20">
-    <div class="bg-white shadow-sm sticky top-0 p-4 flex justify-around text-sm">
-        <button onclick="filter('day')" class="font-bold text-blue-600">日</button>
-        <button onclick="filter('month')">月</button>
-        <button onclick="filter('year')">年</button>
-        <button onclick="filter('all')">全部</button>
+    <div class="bg-white shadow-sm sticky top-0 p-4 flex justify-around text-sm" id="tabs">
+        <button onclick="changeTab('day', this)">日</button>
+        <button onclick="changeTab('month', this)">月</button>
+        <button onclick="changeTab('year', this)">年</button>
+        <button onclick="changeTab('all', this)" class="active">全部</button>
     </div>
 
-    <div class="p-4 grid grid-cols-3 gap-2 text-center" id="board">
+    <div class="p-4 grid grid-cols-3 gap-2 text-center">
         <div class="bg-white p-2 rounded shadow">支出<p id="exp" class="text-red-500 font-bold">0</p></div>
         <div class="bg-white p-2 rounded shadow">收入<p id="inc" class="text-green-500 font-bold">0</p></div>
         <div class="bg-white p-2 rounded shadow">結餘<p id="bal" class="text-blue-500 font-bold">0</p></div>
     </div>
 
-    <div id="list" class="p-4 space-y-2">載入中...</div>
+    <div id="list" class="p-4 space-y-2 text-center text-gray-400">資料載入中...</div>
 
     <div class="fixed bottom-4 right-4">
         <button onclick="document.getElementById('modal').classList.toggle('hidden')" class="bg-blue-600 text-white w-14 h-14 rounded-full shadow-xl text-2xl">+</button>
     </div>
 
-    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center p-6">
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center p-6 z-50">
         <div class="bg-white w-full p-6 rounded-2xl space-y-4">
-            <input type="date" id="d" class="w-full border p-2">
-            <input type="text" id="i" placeholder="項目" class="w-full border p-2">
-            <input type="number" id="a" placeholder="金額(負數為支出)" class="w-full border p-2">
-            <button onclick="send()" class="w-full bg-blue-600 text-white py-2 rounded">儲存</button>
+            <h3 class="font-bold">新增交易</h3>
+            <input type="date" id="d" class="w-full border p-2 rounded">
+            <input type="text" id="i" placeholder="項目" class="w-full border p-2 rounded">
+            <input type="number" id="a" placeholder="金額(負數為支出)" class="w-full border p-2 rounded">
+            <button onclick="send()" class="w-full bg-blue-600 text-white py-2 rounded font-bold">儲存</button>
             <button onclick="document.getElementById('modal').classList.add('hidden')" class="w-full text-gray-400">取消</button>
         </div>
     </div>
 
     <script>
-        // ⚠️ 請把下面這行換成你自己的 Google 網址
         const API_URL = "https://script.google.com/macros/s/AKfycbxchBuKWMB0K2KAJzdwV-jFZpY4VWI7lGUViZQwn7tl3nTf6YNvk1KApiIxB5uUVDhCDg/exec";
-        
+        let rawData = [];
+        let currentMode = 'all';
+
         function load() {
             const s = document.createElement('script');
-            s.src = `${API_URL}?callback=draw`;
+            s.src = `${API_URL}?callback=draw&t=${new Date().getTime()}`;
             document.body.appendChild(s);
         }
 
         function draw(data) {
-            let h = "", e = 0, n = 0;
-            data.forEach(x => {
-                const v = parseFloat(x.金額);
-                v < 0 ? e += Math.abs(v) : n += v;
-                h += `<div class="bg-white p-3 rounded shadow flex justify-between">
-                    <div><b>${x.項目統稱}</b><br><small>${x.日期}</small></div>
+            rawData = data;
+            render();
+        }
+
+        function render() {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const thisMonth = today.substring(0, 7);
+            const thisYear = today.substring(0, 4);
+
+            let filtered = rawData.filter(x => {
+                if (currentMode === 'day') return x.日期 === today;
+                if (currentMode === 'month') return x.日期.startsWith(thisMonth);
+                if (currentMode === 'year') return x.日期.startsWith(thisYear);
+                return true;
+            });
+
+            let h = "", e = 0, inc = 0;
+            filtered.forEach(x => {
+                const v = parseFloat(x.金額) || 0;
+                v < 0 ? e += Math.abs(v) : inc += v;
+                h += `<div class="bg-white p-3 rounded shadow flex justify-between text-left">
+                    <div><b>${x.項目統稱}</b><br><small class="text-gray-400">${x.日期} | ${x.交易帳戶}</small></div>
                     <div class="${v<0?'text-red-500':'text-green-500'} font-bold">${v}</div>
                 </div>`;
             });
-            document.getElementById('list').innerHTML = h || "尚無資料";
+
+            document.getElementById('list').innerHTML = h || "此範圍尚無資料";
             document.getElementById('exp').innerText = e;
-            document.getElementById('inc').innerText = n;
-            document.getElementById('bal').innerText = n - e;
+            document.getElementById('inc').innerText = inc;
+            document.getElementById('bal').innerText = inc - e;
+        }
+
+        function changeTab(mode, btn) {
+            currentMode = mode;
+            document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
         }
 
         async function send() {
+            const btn = event.target;
+            btn.innerText = "儲存中...";
             const p = {
                 date: document.getElementById('d').value,
                 item: document.getElementById('i').value,
                 amount: document.getElementById('a').value,
                 account: "現金", type: "支出", tag: "一般", note: ""
             };
-            await fetch(API_URL, { method: "POST", body: JSON.stringify(p) });
+            await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(p) });
             location.reload();
         }
         load();
