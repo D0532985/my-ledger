@@ -4,75 +4,166 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的雲端帳本</title>
-    <script src="https://cdn.tailwindcss.com"></script> <style>
-        .active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+        .hidden { display: none; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-50 min-h-screen pb-20">
 
-    <div class="bg-white shadow-sm sticky top-0 z-10">
-        <div class="flex justify-around py-3 font-medium text-gray-500">
-            <button class="active">日</button>
-            <button>月</button>
-            <button>年</button>
-            <button>全部</button>
-            <button>自訂</button>
+    <div class="bg-white shadow-sm sticky top-0 z-20">
+        <div class="flex justify-around py-3 text-sm text-gray-500" id="timeFilter">
+            <button onclick="filterData('day')" id="btn-day" class="tab-active">日</button>
+            <button onclick="filterData('month')" id="btn-month">月</button>
+            <button onclick="filterData('year')" id="btn-year">年</button>
+            <button onclick="filterData('all')" id="btn-all">全部</button>
+            <button onclick="filterData('custom')" id="btn-custom">自訂</button>
         </div>
     </div>
 
-    <div class="p-4 grid grid-cols-3 gap-2 text-center">
-        <div class="bg-red-50 p-3 rounded-lg">
-            <p class="text-xs text-red-600">總支出</p>
-            <p class="font-bold text-lg text-red-700">$ 150</p>
+    <div class="p-4 grid grid-cols-3 gap-2 text-center" id="dashboard">
+        <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-red-400">
+            <p class="text-[10px] text-gray-400 uppercase">支出</p>
+            <p class="font-bold text-red-500" id="totalExpense">$ 0</p>
         </div>
-        <div class="bg-green-50 p-3 rounded-lg">
-            <p class="text-xs text-green-600">總收入</p>
-            <p class="font-bold text-lg text-green-700">$ 0</p>
+        <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-green-400">
+            <p class="text-[10px] text-gray-400 uppercase">收入</p>
+            <p class="font-bold text-green-500" id="totalIncome">$ 0</p>
         </div>
-        <div class="bg-blue-50 p-3 rounded-lg">
-            <div class="text-xs text-blue-600">結餘</div>
-            <div class="font-bold text-lg text-blue-700">$ -150</div>
+        <div class="bg-white p-3 rounded-xl shadow-sm border-t-4 border-blue-400">
+            <p class="text-[10px] text-gray-400 uppercase">結餘</p>
+            <p class="font-bold text-blue-600" id="totalBalance">$ 0</p>
         </div>
     </div>
 
-    <div class="px-4 pb-20">
-        <h3 class="text-gray-500 text-sm mb-2">2026年3月25日</h3>
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
-            <div class="p-4 border-b flex justify-between items-center active:bg-gray-50" onclick="toggleDetail()">
-                <div>
-                    <p class="font-bold text-gray-800">午餐 (餐飲)</p>
-                    <p class="text-xs text-gray-400">現金 | 12:30</p>
-                </div>
-                <p class="font-bold text-red-500">- 150</p>
+    <div id="mainContent" class="px-4">
+        <div id="transactionList" class="space-y-3">
+            <p class="text-center text-gray-400 py-10">資料載入中...</p>
+        </div>
+    </div>
+
+    <div id="analyticsContent" class="hidden px-4 space-y-6">
+        <div class="bg-white p-4 rounded-xl shadow-sm">
+            <h4 class="text-sm font-bold mb-4 text-gray-700">交易類型 (支出)</h4>
+            <canvas id="typePieChart"></canvas>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm">
+            <h4 class="text-sm font-bold mb-4 text-gray-700">交易帳戶分佈</h4>
+            <canvas id="accountBarChart"></canvas>
+        </div>
+    </div>
+
+    <div class="fixed bottom-0 w-full bg-white border-t flex justify-around py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+        <button onclick="showPage('list')" class="flex flex-col items-center text-blue-500">
+            <span class="text-xl">🏠</span><span class="text-[10px]">明細</span>
+        </button>
+        <button onclick="showPage('add')" class="bg-blue-600 text-white w-12 h-12 rounded-full -mt-6 flex items-center justify-center shadow-lg border-4 border-white">
+            <span class="text-2xl">+</span>
+        </button>
+        <button onclick="showPage('chart')" class="flex flex-col items-center text-gray-400">
+            <span class="text-xl">📊</span><span class="text-[10px]">分析</span>
+        </button>
+    </div>
+
+    <div id="addModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end">
+        <div class="bg-white w-full rounded-t-3xl p-6 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-lg">新增交易</h3>
+                <button onclick="showPage('list')" class="text-gray-400">取消</button>
             </div>
-            <div id="detail" class="hidden p-4 bg-gray-50 text-sm text-gray-600 border-b">
-                <p>項目統稱：午餐</p>
-                <p>交易日期：2026-03-25</p>
-                <p>交易帳戶：現金</p>
-                <p>交易類型：支出</p>
-                <p>交易標籤：餐飲、外食</p>
-                <p>備註：這家店的排骨飯很好吃</p>
-            </div>
+            <input type="date" id="formDate" class="w-full border p-3 rounded-xl">
+            <input type="text" id="formItem" placeholder="項目統稱 (如: 晚餐)" class="w-full border p-3 rounded-xl">
+            <input type="number" id="formAmount" placeholder="金額 (收入請輸入正數，支出負數)" class="w-full border p-3 rounded-xl">
+            <select id="formAccount" class="w-full border p-3 rounded-xl">
+                <option value="現金">現金</option>
+                <option value="銀行卡">銀行卡</option>
+                <option value="悠遊卡">悠遊卡</option>
+            </select>
+            <button onclick="submitForm()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">儲存紀錄</button>
         </div>
-    </div>
-
-    <div class="fixed bottom-0 w-full bg-white border-t flex justify-around py-3">
-        <button class="flex flex-col items-center text-blue-500">
-            <span>🏠</span><span class="text-xs">首頁</span>
-        </button>
-        <button class="flex flex-col items-center text-gray-400">
-            <span>📊</span><span class="text-xs">圖表分析</span>
-        </button>
-        <button class="bg-blue-500 text-white p-3 rounded-full -mt-8 shadow-lg">
-            ➕
-        </button>
     </div>
 
     <script>
-        function toggleDetail() {
-            const detail = document.getElementById('detail');
-            detail.classList.toggle('hidden');
+        const API_URL = "https://script.google.com/macros/s/AKfycbxchBuKWMB0K2KAJzdwV-jFZpY4VWI7lGUViZQwn7tl3nTf6YNvk1KApiIxB5uUVDhCDg/exec";
+        let allData = [];
+
+        // 初始化：抓取資料
+        async function fetchData() {
+            try {
+                const response = await fetch(API_URL);
+                allData = await response.json();
+                renderList(allData);
+            } catch (e) {
+                document.getElementById('transactionList').innerHTML = "載入失敗，請檢查設定";
+            }
         }
+
+        function renderList(data) {
+            const listEl = document.getElementById('transactionList');
+            let html = "";
+            let exp = 0, inc = 0;
+
+            data.forEach((item, index) => {
+                const amt = parseFloat(item.金額);
+                if (amt < 0) exp += Math.abs(amt); else inc += amt;
+
+                html += `
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 ${amt < 0 ? 'border-red-400' : 'border-green-400'}" onclick="alert('備註：${item.備註 || '無'}\\n標籤：${item.交易標籤}')">
+                    <div class="flex justify-between">
+                        <span class="font-bold">${item.項目統稱}</span>
+                        <span class="${amt < 0 ? 'text-red-500' : 'text-green-500'} font-bold">${amt}</span>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-gray-400 mt-1">
+                        <span>${item.日期.split('T')[0]} | ${item.交易帳戶}</span>
+                        <span>${item.交易類型}</span>
+                    </div>
+                </div>`;
+            });
+
+            listEl.innerHTML = html || "<p class='text-center text-gray-400 py-10'>查無資料</p>";
+            document.getElementById('totalExpense').innerText = `$ ${exp}`;
+            document.getElementById('totalIncome').innerText = `$ ${inc}`;
+            document.getElementById('totalBalance').innerText = `$ ${inc - exp}`;
+        }
+
+        async function submitForm() {
+            const payload = {
+                date: document.getElementById('formDate').value,
+                item: document.getElementById('formItem').value,
+                amount: document.getElementById('formAmount').value,
+                account: document.getElementById('formAccount').value,
+                type: parseFloat(document.getElementById('formAmount').value) < 0 ? "支出" : "收入",
+                tag: "一般",
+                note: ""
+            };
+            
+            alert("正在儲存...");
+            await fetch(API_URL, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            location.reload();
+        }
+
+        function showPage(page) {
+            document.getElementById('mainContent').classList.toggle('hidden', page === 'chart');
+            document.getElementById('analyticsContent').classList.toggle('hidden', page !== 'chart');
+            document.getElementById('addModal').classList.toggle('hidden', page !== 'add');
+            if(page === 'chart') renderCharts();
+        }
+
+        function renderCharts() {
+            // 這裡可以後續擴充 Chart.js 的繪圖邏輯
+            const ctx = document.getElementById('typePieChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: { labels: ['食', '衣', '住', '行'], datasets: [{ data: [10, 20, 30, 40], backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'] }] }
+            });
+        }
+
+        fetchData();
     </script>
 </body>
 </html>
