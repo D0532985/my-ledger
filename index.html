@@ -21,7 +21,7 @@
         <div class="bg-white p-2 rounded shadow">結餘<p id="bal" class="text-blue-500 font-bold">0</p></div>
     </div>
 
-    <div id="list" class="p-4 space-y-2 text-center text-gray-400">資料載入中...</div>
+    <div id="list" class="p-4 space-y-2 text-center text-gray-400">正在同步雲端資料...</div>
 
     <div class="fixed bottom-4 right-4">
         <button onclick="document.getElementById('modal').classList.toggle('hidden')" class="bg-blue-600 text-white w-14 h-14 rounded-full shadow-xl text-2xl">+</button>
@@ -33,7 +33,7 @@
             <input type="date" id="d" class="w-full border p-2 rounded">
             <input type="text" id="i" placeholder="項目" class="w-full border p-2 rounded">
             <input type="number" id="a" placeholder="金額(負數為支出)" class="w-full border p-2 rounded">
-            <button onclick="send()" class="w-full bg-blue-600 text-white py-2 rounded font-bold">儲存</button>
+            <button onclick="send(this)" class="w-full bg-blue-600 text-white py-2 rounded font-bold">儲存</button>
             <button onclick="document.getElementById('modal').classList.add('hidden')" class="w-full text-gray-400">取消</button>
         </div>
     </div>
@@ -45,7 +45,8 @@
 
         function load() {
             const s = document.createElement('script');
-            s.src = `${API_URL}?callback=draw&t=${new Date().getTime()}`;
+            // 加上時間戳記強迫 GitHub 抓取最新資料
+            s.src = `${API_URL}?callback=draw&ts=${new Date().getTime()}`;
             document.body.appendChild(s);
         }
 
@@ -61,9 +62,10 @@
             const thisYear = today.substring(0, 4);
 
             let filtered = rawData.filter(x => {
-                if (currentMode === 'day') return x.日期 === today;
-                if (currentMode === 'month') return x.日期.startsWith(thisMonth);
-                if (currentMode === 'year') return x.日期.startsWith(thisYear);
+                const itemDate = x.日期.split('T')[0]; // 處理你看到的 T07:00 格式
+                if (currentMode === 'day') return itemDate === today;
+                if (currentMode === 'month') return itemDate.startsWith(thisMonth);
+                if (currentMode === 'year') return itemDate.startsWith(thisYear);
                 return true;
             });
 
@@ -71,13 +73,14 @@
             filtered.forEach(x => {
                 const v = parseFloat(x.金額) || 0;
                 v < 0 ? e += Math.abs(v) : inc += v;
-                h += `<div class="bg-white p-3 rounded shadow flex justify-between text-left">
-                    <div><b>${x.項目統稱}</b><br><small class="text-gray-400">${x.日期} | ${x.交易帳戶}</small></div>
+                h += `<div class="bg-white p-3 rounded shadow flex justify-between text-left animate-fade-in">
+                    <div><b>${x.項目統稱}</b><br><small class="text-gray-400">${x.日期.split('T')[0]} | ${x.交易帳戶}</small></div>
                     <div class="${v<0?'text-red-500':'text-green-500'} font-bold">${v}</div>
                 </div>`;
             });
 
-            document.getElementById('list').innerHTML = h || "此範圍尚無資料";
+            document.getElementById('list').innerHTML = h || "目前範圍尚無資料";
+            document.getElementById('list').classList.remove('text-center', 'text-gray-400');
             document.getElementById('exp').innerText = e;
             document.getElementById('inc').innerText = inc;
             document.getElementById('bal').innerText = inc - e;
@@ -90,8 +93,7 @@
             render();
         }
 
-        async function send() {
-            const btn = event.target;
+        async function send(btn) {
             btn.innerText = "儲存中...";
             const p = {
                 date: document.getElementById('d').value,
@@ -99,8 +101,9 @@
                 amount: document.getElementById('a').value,
                 account: "現金", type: "支出", tag: "一般", note: ""
             };
+            // 使用 no-cors 模式確保 POST 請求能發出
             await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(p) });
-            location.reload();
+            setTimeout(() => { location.reload(); }, 1000);
         }
         load();
     </script>
